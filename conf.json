@@ -1,0 +1,17 @@
+﻿{
+  "ServerName": "ECMXT",
+  "SpecifyComputerName": {
+    "Specify": false,
+    "AICNameList": ["AIC1", "AIC2", "AIC3", "AIC4"]
+  },
+  "SVTAll": false,
+  "SitePrep": {
+    "Check": false,
+    "Info": {
+      "OrgName": "",
+      "OrgLoc": "",
+      "ContactorName": "",
+      "ContactorTitle": ""
+    }
+  }
+}
