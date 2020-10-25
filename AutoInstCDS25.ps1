@@ -1,5 +1,15 @@
-﻿# 获取配置文件
-$conf = (Get-Content -Path ($PSScriptRoot + "\conf.json") -Encoding UTF8 | ConvertFrom-Json)
+﻿#################################
+# 配置部分
+
+# 是否生成啰嗦版SVT报告，默认不生成
+$SVTAll = $false
+
+# 配置结束
+#################################
+
+
+# 获取配置文件
+# $conf = (Get-Content -Path ($PSScriptRoot + "\conf.json") -Encoding UTF8 | ConvertFrom-Json)
 # 自用调试
 # $conf = (Get-Content -Path ./conf.json -Encoding UTF8 | ConvertFrom-Json)
 # 共享目录路径
@@ -84,8 +94,10 @@ Start-Process -FilePath "$installBase\Setup\redist\vc_redist15.x86.EXE" -Argumen
 # Start-Process -FilePath "$installBase\Setup\redist\VisualCppRedist_AIO_x86_x64.exe" -ArgumentList "/ai5839" -Wait
 
 # 判断是否AIC
-if ($conf.SpecifyComputerName.Specify) {
-    $isAIC = ($conf.SpecifyComputerName.AICNameList -contains $env:COMPUTERNAME)
+$aicNameList = Get-Content -Path (Join-Path (Get-ItemProperty $PSScriptRoot).FullName AICList.txt)
+
+if ($aicNameList -notcontains "normal") {
+    $isAIC = ($aicNameList -contains $env:COMPUTERNAME)
 }
 else {
     $isAIC = $env:COMPUTERNAME -match "AIC"
@@ -173,7 +185,7 @@ ForEach ($reffile in (Get-ChildItem -path ($svthome + "\IQProducts") -Recurse *.
         }
     }
 }
-if ($conf.SVTAll) {
+if ($SVTAll) {
     Start-Process ($svthome + "\Bin\SFVTool.exe") -ArgumentList "-qt -slient -showall -p:`"$proname`" -pdf -xml"  -Wait
 }
 else {
