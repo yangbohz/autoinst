@@ -172,6 +172,12 @@ Get-ChildItem -Path $drvbase *.msi -Recurse | Sort-Object -Property Name | ForEa
     Start-Process MSIEXEC -ArgumentList "/qn /i `"$msi`"" -Wait
 }
 
+# # PalXT驱动
+# if (Test-Path (Join-Path $drvbase palxt.exe)) {
+#     Write-Host ((Get-Date).ToString() + "  开始安装Palxt驱动") -ForegroundColor Green
+#     Start-Process "$drvbase\palxt.exe" -ArgumentList "/S /v/qn" -Wait
+# }
+
 # 运行SVT工具，默认为监测到的产品生成简短报告
 $svthome = (Get-ItemProperty -Path "HKLM:SOFTWARE\WOW6432Node\Agilent Technologies\IQTool").InstallLocation
 ForEach ($reffile in (Get-ChildItem -path ($svthome + "\IQProducts") -Recurse *.xml)) {
