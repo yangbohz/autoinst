@@ -141,7 +141,7 @@ if (Test-Path $cdshf) {
         Add-Content -Path (Join-Path $shareBase "Update_Summary.log") -Value ($env:COMPUTERNAME + "`t" + $patchStatus.Substring(11))
     }
     else {
-        Add-Content -Path (Join-Path $shareBase "Exception.log ") -Value ($env:COMPUTERNAME + "`tUpdate " + $patchStatus.Substring(11))
+        Add-Content -Path (Join-Path $shareBase "Exception.log") -Value ($env:COMPUTERNAME + "`tUpdate " + $patchStatus.Substring(11))
     }
 }
 
