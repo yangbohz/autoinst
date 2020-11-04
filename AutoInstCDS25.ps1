@@ -44,35 +44,35 @@ $docpath = Join-Path $env:USERPROFILE "Documents"
 
 # 检查必要的文件路径，如果安装程序或者属性文件不存在则退出执行
 if (-not (Test-Path $cdsinstaller)) {
-    Write-Warning -Message "未检测到安装执行程序，预期路径为$($cdsinstaller)"
+    Write-Warning -Message "Doesn't detected installer, expected path is $($cdsinstaller)"
     break
 }
-Write-Host ((Get-Date).ToString() + "  读取到安装文件路径为$($cdsinstaller)") -ForegroundColor Cyan
+Write-Host ((Get-Date).ToString() + "  Get installer path $($cdsinstaller)") -ForegroundColor Cyan
 if (-not (Test-Path $cltprop)) {
-    Write-Warning -Message "未检测到客户端属性文件，预期路径为$($cltprop)"
+    Write-Warning -Message "Doesn't detected client config file, expected path is $($cltprop)"
     break
 }
 if (-not (Test-Path $aicprop )) {
-    Write-Warning -Message "未检测到AIC属性文件，预期路径为$($aicprop)"
+    Write-Warning -Message "Doesn't detected AIC config file, expected path is $($aicprop)"
     break
 }
 if (-not (Test-Path $netBase)) {
-    Write-Warning -Message "未检测到dotNet安装文件，预期路径为$($netBase)，请确认这是预期的行为，将在10秒后继续，如果不是，按CTRL+C终止运行"
+    Write-Warning -Message "Doesn't detected .Net source file, expected path is $($netBase), Please confirm this is the expected behavior, it will continue after 10 seconds, if not, press CTRL+C to terminate the installation"
     Start-Sleep -Seconds 10
 }
-Write-Host  ((Get-Date).ToString() + "  所有需要的程序文件均已检测到，即将开始安装") -ForegroundColor Cyan
+Write-Host  ((Get-Date).ToString() + "  All needed files present, installation start immediately") -ForegroundColor Cyan
 
 # 安装NetFX
 $OSVersion = (Get-Item "HKLM:SOFTWARE\Microsoft\Windows NT\CurrentVersion").GetValue('ReleaseID')
 $netsxs = Join-Path $netBase $OSVersion
 if ((Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WCF-NonHTTP-Activation" }).State -eq "disabled") {
-    Write-Host ((Get-Date).ToString() + "  启用netFx3.5") -ForegroundColor Green
+    Write-Host ((Get-Date).ToString() + "  Enable netFx3.5") -ForegroundColor Green
     Enable-WindowsOptionalFeature -Online -FeatureName NetFx3, WCF-NonHTTP-Activation -All -LimitAccess -Source $netsxs | Out-Null
 }
 
 # 检测NETFX3是否启用成功
 if ((Get-WindowsOptionalFeature -Online -FeatureName "NetFX3").State -eq "Disabled") {
-    Write-Warning -Message "检测到.NetFX3未成功激活，终止安装"
+    Write-Warning -Message "Detected .NetFX3 was not successfully activated, installation was terminated"
     Add-Content -Path (Join-Path $shareBase "Exception.log") -Value ($env:COMPUTERNAME + "`tNetFX3")
     break
 }
@@ -83,7 +83,7 @@ if (-not (Test-Path -Path $logbase)) {
 Start-Process EXPLORER -ArgumentList $logbase
 
 # 安装VC运行库
-Write-Host ((Get-Date).ToString() + "  开始安装C++运行库") -ForegroundColor Green
+Write-Host ((Get-Date).ToString() + "  Start to install C++ runtime lib") -ForegroundColor Green
 Start-Process -FilePath "$installBase\Setup\redist\vc_redist80sp1_x86.EXE" -ArgumentList "/q:a" -Wait
 Start-Process -FilePath "$installBase\Setup\redist\vc_redist90sp1_x86.EXE" -ArgumentList "/q:a" -Wait
 Start-Process -FilePath "$installBase\Setup\redist\vcredist_x86.exe" -ArgumentList "-install -quiet -norestart" -Wait
@@ -105,13 +105,13 @@ else {
 
 # 根据上一步判断结果安装工作站
 if ($isAIC) {
-    Write-Host ((Get-Date).ToString() + "  开始按照AIC安装") -ForegroundColor Green
+    Write-Host ((Get-Date).ToString() + "  Start to install as AIC") -ForegroundColor Green
     Start-Process $cdsinstaller -ArgumentList "-s -c $aicprop" -Wait
     # 卸载Sample Scheduler插件，不卸载会在系统里报告大量错误
     # Start-Process msiexec -ArgumentList "/x {645F3E18-1ED9-458F-A8A9-2EF44104B074} /qn" -wait
 }
 else {
-    Write-Host ((Get-Date).ToString() + "  开始按照客户端安装") -ForegroundColor Green
+    Write-Host ((Get-Date).ToString() + "  Start to install as Client") -ForegroundColor Green
     Start-Process $cdsinstaller -ArgumentList "-s -c $cltprop" -Wait
 }
 
@@ -131,7 +131,7 @@ else {
 
 # 如果补丁文件存在，则安装
 if (Test-Path $cdshf) {
-    Write-Host ((Get-Date).ToString() + "  开始安装工作站补丁") -ForegroundColor Green
+    Write-Host ((Get-Date).ToString() + "  Start to install CDS Update") -ForegroundColor Green
     Start-Process $cdshf -ArgumentList "-s LicenseAccepted=True -norestart" -Wait
     # 检测补丁安装状态
     $lastpatchdir = Get-ChildItem (Join-Path $logbase SoftwareUpdate) | Sort-Object -Property CreationTime -Descending | Select-Object -First 1
@@ -150,7 +150,7 @@ $qualabase = Join-Path $installBase "Setup\Tools\QualA"
 $quala = (Get-ChildItem -Path $qualabase *.msi).FullName
 $qualaplugin = (Get-ChildItem -Path (Join-Path $qualabase "CDS Plugin") *.msi).FullName
 
-Write-Host ((Get-Date).ToString() + "  开始安装QualA") -ForegroundColor Green
+Write-Host ((Get-Date).ToString() + "  Start to install QualA") -ForegroundColor Green
 if ([System.Globalization.Cultureinfo]::InstalledUICulture.LCID -eq "2052") {
     Start-Process MSIEXEC -ArgumentList "/qn /i `"$quala`" TRANSFORMS=`":zh-CN.mst`" " -Wait
     Start-Process MSIEXEC -ArgumentList "/qn /i `"$qualaplugin`" TRANSFORMS=`":zh-CN.mst`" " -Wait
@@ -162,19 +162,19 @@ else {
 }
 
 # 安装adobe阅读器
-Write-Host ((Get-Date).ToString() + "  开始安装Adobe Reader") -ForegroundColor Green
+Write-Host ((Get-Date).ToString() + "  Start to install Adobe Reader") -ForegroundColor Green
 Start-Process $adobe -ArgumentList "/sAll /rs EULA_ACCEPT=YES REMOVE_PREVIOUS=YES" -Wait
 
 # 驱动
 Get-ChildItem -Path $drvbase *.msi -Recurse | Sort-Object -Property Name | ForEach-Object {
     $msi = $_.FullName
-    Write-Host ((Get-Date).ToString() + "  开始安装" + $_.BaseName) -ForegroundColor Green
+    Write-Host ((Get-Date).ToString() + "  Start to install" + $_.BaseName) -ForegroundColor Green
     Start-Process MSIEXEC -ArgumentList "/qn /i `"$msi`"" -Wait
 }
 
 # # PalXT驱动
 # if (Test-Path (Join-Path $drvbase palxt.exe)) {
-#     Write-Host ((Get-Date).ToString() + "  开始安装Palxt驱动") -ForegroundColor Green
+#     Write-Host ((Get-Date).ToString() + "  Start to install Palxt driver") -ForegroundColor Green
 #     Start-Process "$drvbase\palxt.exe" -ArgumentList "/S /v/qn" -Wait
 # }
 
@@ -232,6 +232,6 @@ if ((Get-Service -Name "NetTcpPortSharing").StartType -ne "Automatic" ) {
 }
 
 # 重启计算机
-Write-Warning -Message ((Get-Date).ToString() + "  执行完毕，15秒后重启计算机")
+Write-Warning -Message ((Get-Date).ToString() + "  Installation completed, restart computer in 15 seconds")
 Start-Sleep -Seconds 15
 Restart-Computer -Force
