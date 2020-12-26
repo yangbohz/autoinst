@@ -60,7 +60,7 @@ if (-not (Test-Path $netBase)) {
     Write-Warning -Message "Doesn't detected .Net source file, expected path is $($netBase), Please confirm this is the expected behavior, it will continue after 10 seconds, if not, press CTRL+C to terminate the installation"
     Start-Sleep -Seconds 10
 }
-Write-Host  ((Get-Date).ToString() + "  All needed files present, installation start immediately") -ForegroundColor Cyan
+Write-Host ((Get-Date).ToString() + "  All needed files present, installation start immediately") -ForegroundColor Cyan
 
 # 安装NetFX
 $OSVersion = (Get-Item "HKLM:SOFTWARE\Microsoft\Windows NT\CurrentVersion").GetValue('ReleaseID')
@@ -80,7 +80,13 @@ if ((Get-WindowsOptionalFeature -Online -FeatureName "NetFX3").State -eq "Disabl
 if (-not (Test-Path -Path $logbase)) {
     New-Item -ItemType Directory -Path $logbase | Out-Null
 }
-Start-Process EXPLORER -ArgumentList $logbase
+
+# 检查是否应用了预置组策略，如果没有检测到自制安捷伦壁纸，则认为没有应用组策略，将使用SPT进行系统设定
+if (-not (Test-Path -Path "C:\Windows\Agilent.png")) {
+    Write-Host ((Get-Date).ToStrings() + "  Seemed Agilent Group Policy not be applyed. SPT will run first") -ForegroundColor Yellow
+    $spt = Join-Path $installBase "Setup\Tools\SPT\SystemPreparationTool.exe"
+    Start-Process -FilePath $spt -ArgumentList "-silent -norestart ConditionRecommended=True ConfigurationName=`"IES Customerzed for CDS 2.5`""
+}
 
 # 安装VC运行库
 Write-Host ((Get-Date).ToString() + "  Start to install C++ runtime lib") -ForegroundColor Green
@@ -94,14 +100,18 @@ Start-Process -FilePath "$installBase\Setup\redist\vc_redist15.x86.EXE" -Argumen
 # Start-Process -FilePath "$installBase\Setup\redist\VisualCppRedist_AIO_x86_x64.exe" -ArgumentList "/ai5839" -Wait
 
 # 判断是否AIC
-$aicNameList = Get-Content -Path (Join-Path (Get-ItemProperty $PSScriptRoot).FullName AICList.txt)
+$aicList = Join-Path (Get-ItemProperty $PSScriptRoot).FullName AICList.txt
+$aicNameList = Get-Content -Path $aicList -Encoding utf8
 
-if ($aicNameList -notcontains "normal") {
+if (Test-Path -Path $aicList) {
     $isAIC = ($aicNameList -contains $env:COMPUTERNAME)
 }
 else {
     $isAIC = $env:COMPUTERNAME -match "AIC"
 }
+
+# 打开日志文件夹
+Start-Process EXPLORER -ArgumentList $logbase
 
 # 根据上一步判断结果安装工作站
 if ($isAIC) {
@@ -180,7 +190,7 @@ Get-ChildItem -Path $drvbase *.msi -Recurse | Sort-Object -Property Name | ForEa
 
 # 运行SVT工具，默认为监测到的产品生成简短报告
 $svthome = (Get-ItemProperty -Path "HKLM:SOFTWARE\WOW6432Node\Agilent Technologies\IQTool").InstallLocation
-ForEach ($reffile in (Get-ChildItem -path ($svthome + "\IQProducts") -Recurse *.xml)) {
+ForEach ($reffile in (Get-ChildItem -Path ($svthome + "\IQProducts") -Recurse *.xml)) {
     [xml] $isbase = Get-Content $reffile.FullName -Encoding UTF8
     if ($null -ne $isbase.PRODUCT.BASE) {
         if ($null -ne $isbase.PRODUCT.PRODUCTINFO.PRODUCTNAME) {

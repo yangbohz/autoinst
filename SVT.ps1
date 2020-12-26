@@ -11,7 +11,7 @@ $docpath = Join-Path $env:USERPROFILE "Documents"
 
 # 运行SVT工具，默认为监测到的产品生成简短报告
 $svthome = (Get-ItemProperty -Path "HKLM:SOFTWARE\WOW6432Node\Agilent Technologies\IQTool").InstallLocation
-ForEach ($reffile in (Get-ChildItem -path ($svthome + "\IQProducts") -Recurse *.xml)) {
+ForEach ($reffile in (Get-ChildItem -Path ($svthome + "\IQProducts") -Recurse *.xml)) {
     [xml] $isbase = Get-Content $reffile.FullName -Encoding UTF8
     if ($null -ne $isbase.PRODUCT.BASE) {
         if ($null -ne $isbase.PRODUCT.PRODUCTINFO.PRODUCTNAME) {

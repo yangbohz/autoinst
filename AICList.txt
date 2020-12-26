@@ -1,1 +1,4 @@
-normal
+使用时删除此文件的说明内容
+如果AIC计算机名不包含AIC字样，将此文件放置于脚本相同位置，并AIC计算机名写在此处，一行一个，否则此文件不要出现
+Delete all thexe content when useing this file
+if the computer name of AIC do not contain "AIC", type the AIC computer name in this file. One name per row , or this file should not present
