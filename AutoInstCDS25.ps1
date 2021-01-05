@@ -101,9 +101,9 @@ Start-Process -FilePath "$installBase\Setup\redist\vc_redist15.x86.EXE" -Argumen
 
 # 判断是否AIC
 $aicList = Join-Path (Get-ItemProperty $PSScriptRoot).FullName AICList.txt
-$aicNameList = Get-Content -Path $aicList -Encoding utf8
 
 if (Test-Path -Path $aicList) {
+    $aicNameList = Get-Content -Path $aicList -Encoding utf8
     $isAIC = ($aicNameList -contains $env:COMPUTERNAME)
 }
 else {
