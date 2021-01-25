@@ -83,7 +83,7 @@ if (-not (Test-Path -Path $logbase)) {
 
 # 检查是否应用了预置组策略，如果没有检测到自制安捷伦壁纸，则认为没有应用组策略，将使用SPT进行系统设定
 if (-not (Test-Path -Path "C:\Windows\Agilent.png")) {
-    Write-Host ((Get-Date).ToStrings() + "  Seemed Agilent Group Policy not be applyed. SPT will run first") -ForegroundColor Yellow
+    Write-Host ((Get-Date).ToString() + "  Seemed Agilent Group Policy not be applyed. SPT will run first") -ForegroundColor Yellow
     $spt = Join-Path $installBase "Setup\Tools\SPT\SystemPreparationTool.exe"
     Start-Process -FilePath $spt -ArgumentList "-silent -norestart ConditionRecommended=True ConfigurationName=`"IES Customerzed for CDS 2.5`""
 }
@@ -178,7 +178,7 @@ Start-Process $adobe -ArgumentList "/sAll /rs EULA_ACCEPT=YES REMOVE_PREVIOUS=YE
 # 驱动
 Get-ChildItem -Path $drvbase *.msi -Recurse | Sort-Object -Property Name | ForEach-Object {
     $msi = $_.FullName
-    Write-Host ((Get-Date).ToString() + "  Start to install" + $_.BaseName) -ForegroundColor Green
+    Write-Host ((Get-Date).ToString() + "  Start to install " + $_.BaseName) -ForegroundColor Green
     Start-Process MSIEXEC -ArgumentList "/qn /i `"$msi`"" -Wait
 }
 
