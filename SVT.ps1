@@ -7,6 +7,9 @@ $SVTAll = $false
 # 配置结束
 #################################
 
+# 共享目录路径
+$shareBase = (Get-ItemProperty $PSScriptRoot).Parent.FullNam
+
 $docpath = Join-Path $env:USERPROFILE "Documents"
 
 # 运行SVT工具，默认为监测到的产品生成简短报告
