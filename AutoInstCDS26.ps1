@@ -100,8 +100,8 @@ Start-Process -FilePath "$installBase\Setup\redist\vc_redist90sp1_x86.EXE" -Argu
 Start-Process -FilePath "$installBase\Setup\redist\vcredist_x86.exe" -ArgumentList "-install -quiet -norestart" -Wait
 Start-Process -FilePath "$installBase\Setup\redist\vc_redist12.x64.exe" -ArgumentList "-install -quiet -norestart" -Wait
 Start-Process -FilePath "$installBase\Setup\redist\vc_redist12.x86.EXE" -ArgumentList "-install -quiet -norestart" -Wait
-Start-Process -FilePath "$installBase\Setup\redist\vc_redist15.x64.EXE" -ArgumentList "-install -quiet -norestart" -Wait
-Start-Process -FilePath "$installBase\Setup\redist\vc_redist15.x86.EXE" -ArgumentList "-install -quiet -norestart" -Wait
+Start-Process -FilePath "$installBase\Setup\redist\vc_redist16.x64.EXE" -ArgumentList "-install -quiet -norestart" -Wait
+Start-Process -FilePath "$installBase\Setup\redist\vc_redist16.x86.EXE" -ArgumentList "-install -quiet -norestart" -Wait
 # https://github.com/abbodi1406/vcredist AllInOne C++运行库
 # Start-Process -FilePath "$installBase\Setup\redist\VisualCppRedist_AIO_x86_x64.exe" -ArgumentList "/ai5839" -Wait
 
