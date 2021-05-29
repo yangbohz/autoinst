@@ -8,7 +8,7 @@ $SVTAll = $false
 #################################
 
 # 共享目录路径
-$shareBase = (Get-ItemProperty $PSScriptRoot).Parent.FullNam
+$shareBase = (Get-ItemProperty $PSScriptRoot).Parent.FullName
 
 $docpath = Join-Path $env:USERPROFILE "Documents"
 
