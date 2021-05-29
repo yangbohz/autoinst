@@ -1,6 +1,6 @@
 # 使用说明
 
-适用于CDS2.5版本客户端以及AIC自动安装项目,需要使用修改过的SPT配置文件,否则无论如何都会在安装过程中自动重启从而导致安装过程中断.大部分必要的系统设置通过组策略实现,脚本中可以自动将netfx相关的项目进行激活.
+适用于CDS2版本客户端以及AIC自动安装项目,需要使用修改过的SPT配置文件,否则无论如何都会在安装过程中自动重启从而导致安装过程中断.大部分必要的系统设置通过组策略实现,脚本中可以自动将netfx相关的项目进行激活.
 
 ## 预期安装效果
 
@@ -22,18 +22,18 @@
 6. 将下面的两个SPT配置文件内容清空,防止安装过程中自动重启
 
 ```
-   OpenLab (CDS, ECMXT)~2.5~(Client, CMServices)~Win10.sysprep
-   OpenLab CDS~2.5~AIC~Win10.sysprep
+   OpenLab (CDS, ECMXT)~2.6~(Client, CMServices)~Win10.sysprep
+   OpenLab CDS~2.6~AIC~Win10.sysprep
 ```
 
-7. 如果未使用预定义的安捷伦策略，SPT文件夹下面需要有**IES Customerzed for CDS 2.5**配置文件的存在
+7. 如果未使用预定义的安捷伦策略，SPT文件夹下面需要有**IES Customerzed for CDS 2.6**配置文件的存在
 
 
 ### 要求的目录结构
 
 ```
 共享根路径
-├─OpenLabCDS-2.5.927(**)
+├─OpenLabCDS-2.6.0.841(**)
 │  ├─Drivers(**)
 │  │  ├─10-GC Drivers.msi
 │  │  └-其他msi格式安装包,名称随意,按名称顺序进行安装
@@ -42,7 +42,7 @@
 │  ├-OpenLab_CDS_Update.exe(**如果有补丁,将客户端补丁解压出来的这个文件放在此处,如果没有,就不用管了)
 │  └-setup.exe(其他标准的文件此处不再列出)
 ├─dotNet(**)
-│  ├─1909
+│  ├─21H1
 │  ├─2004
 │  ├─2009
 │  └─其他年份版本的netfx3运行库,win10版本要写正确
@@ -55,7 +55,7 @@
 
 上述文件准备完毕后，用管理员权限开启Powershell窗口，直接输入脚本路径执行即可，例如
 
-`\\olss\agilent\autoinst\autoinstcds25.ps1`
+`\\olss\agilent\autoinst\autoinstcds26.ps1`
 
 等待即可，可以观察命令行窗口提示的进度，一些常见的问题也会在这里反馈出来。安装完毕后会自动重启，同时在上面准备的共享路径根目录下会生成若干汇总文件，分别为
 
