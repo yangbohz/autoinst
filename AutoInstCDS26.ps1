@@ -16,7 +16,7 @@ $SVTAll = $false
 # $shareBase = "\\" + $conf.ServerName + "\Agilent\"
 $shareBase = (Get-ItemProperty $PSScriptRoot).Parent.FullName
 # 安装文件文件夹名称
-$installBase = Join-Path $shareBase "OpenLabCDS-2.5.0.927"
+$installBase = Join-Path $shareBase "OpenLabCDS-2.6.0.841"
 # .net安装文件存放位置（Win10的sxs下面的文件也在这里）
 $netBase = Join-Path $shareBase "dotNet"
 # AIC的安装属性文件名
@@ -40,7 +40,6 @@ else {
 
 # 固定目录位置，不用管
 $logbase = Join-Path $env:ProgramData "Agilent\InstallLogs"
-$docpath = Join-Path $env:USERPROFILE "Documents"
 
 # 检查必要的文件路径，如果安装程序或者属性文件不存在则退出执行
 if (-not (Test-Path $cdsinstaller)) {
@@ -62,8 +61,13 @@ if (-not (Test-Path $netBase)) {
 }
 Write-Host ((Get-Date).ToString() + "  All needed files present, installation start immediately") -ForegroundColor Cyan
 
-# 安装NetFX
-$OSVersion = (Get-Item "HKLM:SOFTWARE\Microsoft\Windows NT\CurrentVersion").GetValue('ReleaseID')
+# 安装NetFX,21H1之前的系统用releaseID，例如2004，2009这种。21H1之后的用displayID，例如21H1，21H2这种
+$OSVersion = (Get-Item "HKLM:SOFTWARE\Microsoft\Windows NT\CurrentVersion").GetValue('DisplayVersion')
+
+if ($null -eq $OSVersion) {
+    $OSVersion = (Get-Item "HKLM:SOFTWARE\Microsoft\Windows NT\CurrentVersion").GetValue('ReleaseID')
+}
+
 $netsxs = Join-Path $netBase $OSVersion
 if ((Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WCF-NonHTTP-Activation" }).State -eq "disabled") {
     Write-Host ((Get-Date).ToString() + "  Enable netFx3.5") -ForegroundColor Green
@@ -92,6 +96,10 @@ else {
     Start-Process -FilePath $spt -ArgumentList "-silent -norestart ConditionRecommended=True ConfigurationName=`"IES Customerzed for CDS 2.6 LITE`""
  
 }
+# 安装dotNetCore库
+Write-Host ((Get-Date).ToString() + "  Start to install dotNetCore runtime lib") -ForegroundColor Green
+Start-Process -FilePath "$installBase\Setup\redist\DotnetCore\windowsdesktop-runtime-3.1.10-win-x64.exe" -ArgumentList "/install /quiet /norestart" -Wait
+Start-Process -FilePath "$installBase\Setup\redist\DotnetCore\aspnetcore-runtime-3.1.10-win-x64.exe" -ArgumentList "/install /quiet /norestart" -Wait
 
 # 安装VC运行库
 Write-Host ((Get-Date).ToString() + "  Start to install C++ runtime lib") -ForegroundColor Green
@@ -102,8 +110,8 @@ Start-Process -FilePath "$installBase\Setup\redist\vc_redist12.x64.exe" -Argumen
 Start-Process -FilePath "$installBase\Setup\redist\vc_redist12.x86.EXE" -ArgumentList "-install -quiet -norestart" -Wait
 Start-Process -FilePath "$installBase\Setup\redist\vc_redist16.x64.EXE" -ArgumentList "-install -quiet -norestart" -Wait
 Start-Process -FilePath "$installBase\Setup\redist\vc_redist16.x86.EXE" -ArgumentList "-install -quiet -norestart" -Wait
-# https://github.com/abbodi1406/vcredist AllInOne C++运行库
-# Start-Process -FilePath "$installBase\Setup\redist\VisualCppRedist_AIO_x86_x64.exe" -ArgumentList "/ai5839" -Wait
+# https://github.com/abbodi1406/vcredist AllInOne C++运行库,安装的似乎有点乱，先不用。
+# Start-Process -FilePath "$installBase\Setup\redist\VisualCppRedist_AIO_x86_x64.exe" -ArgumentList "/ai58239" -Wait
 
 # 判断是否AIC
 $aicList = Join-Path (Get-ItemProperty $PSScriptRoot).FullName AICList.txt
@@ -169,7 +177,7 @@ Start-Process $adobe -ArgumentList "/sAll /rs EULA_ACCEPT=YES REMOVE_PREVIOUS=YE
 Get-ChildItem -Path $drvbase *.msi -Recurse | Sort-Object -Property Name | ForEach-Object {
     $msi = $_.FullName
     Write-Host ((Get-Date).ToString() + "  Start to install " + $_.BaseName) -ForegroundColor Green
-    Start-Process MSIEXEC -ArgumentList "/qn /i `"$msi`"" -Wait
+    Start-Process MSIEXEC -ArgumentList "/qn /i `"$msi`" /norestart" -Wait
 }
 
 # # PalXT驱动
@@ -201,10 +209,11 @@ else {
 # 将SVT工具生成的PDF复制到我的文档中
 $sv = 'C:\SVReports'
 # 在桌面上生成IQOQ文件夹并将svreport复制过去
-# $dest = [Environment]::GetFolderPath("Desktop") + '\' + $iqoq + '\'
-# New-Item -Path $dest -ItemType Directory -ErrorAction SilentlyContinue
-# 在将svreport直接复制到“我的文档”中，ACE默认打开我的文档目录，放到这里会稍微省点麻烦。
-$dest = $docpath
+$dest = Join-Path ([Environment]::GetFolderPath("Desktop")) IQOQ
+New-Item -Path $dest -ItemType Directory -ErrorAction SilentlyContinue
+# 在将svreport直接复制到“我的文档”中，ACE默认打开我的文档目录，放到这里会稍微省点麻烦。ACE3改了工作机制，不再使用文档作为默认位置，使用上面的方式。
+# $docpath = Join-Path $env:USERPROFILE "Documents"
+# $dest = $docpath
 $rptnum = Get-ChildItem $sv | Measure-Object
 Get-ChildItem $sv *.pdf -Recurse | Sort-Object -Property CreationTime -Descending | Select-Object -First $rptnum.Count |
 ForEach-Object {
