@@ -61,7 +61,7 @@ if (-not (Test-Path $netBase)) {
 }
 Write-Host ((Get-Date).ToString() + "  All needed files present, installation start immediately") -ForegroundColor Cyan
 
-# 安装NetFX,21H1之前的系统用releaseID，例如2004，2009这种。21H1之后的用displayID，例如21H1，21H2这种
+# 安装NetFX,20H2之前的系统用releaseID，例如2004，2009这种。20H2之后的用displayID，例如21H1，21H2这种
 $OSVersion = (Get-Item "HKLM:SOFTWARE\Microsoft\Windows NT\CurrentVersion").GetValue('DisplayVersion')
 
 if ($null -eq $OSVersion) {
@@ -75,7 +75,7 @@ if ((Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WCF
 }
 
 # 检测NETFX3是否启用成功
-if ((Get-WindowsOptionalFeature -Online -FeatureName "NetFX3").State -eq "Disabled") {
+if ((Get-WindowsOptionalFeature -Online -FeatureName "NetFX3").State -ne "Enabled") {
     Write-Warning -Message "Detected .NetFX3 was not successfully activated, installation was terminated"
     Add-Content -Path (Join-Path $shareBase "Exception.log") -Value ($env:COMPUTERNAME + "`tNetFX3")
     break
@@ -86,9 +86,9 @@ if (-not (Test-Path -Path $logbase)) {
 }
 
 # 检查是否应用了预置组策略，如果没有检测到自制安捷伦壁纸，则认为没有应用组策略，将使用SPT进行系统设定
+$spt = Join-Path $installBase "Setup\Tools\SPT\SystemPreparationTool.exe"
 if (-not (Test-Path -Path "C:\Windows\Agilent.png")) {
     Write-Host ((Get-Date).ToString() + "  +_+ Seemed Agilent Group Policy not be applyed. SPT will run full configure") -ForegroundColor Yellow
-    $spt = Join-Path $installBase "Setup\Tools\SPT\SystemPreparationTool.exe"
     Start-Process -FilePath $spt -ArgumentList "-silent -norestart ConditionRecommended=True ConfigurationName=`"IES Customerzed for CDS 2.6`""
 }
 else {
