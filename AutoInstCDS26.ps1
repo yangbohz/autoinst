@@ -41,6 +41,12 @@ else {
 # 固定目录位置，不用管
 $logbase = Join-Path $env:ProgramData "Agilent\InstallLogs"
 
+# 检查是否存在正在运行的安装程序，有时候意外重启会这样，防止冲突。
+if ((Get-Process -Name CDSInstaller -ErrorAction SilentlyContinue).Count -ne 0) {
+    Write-Warning -Message "Detect running CDSInstaller, maybe there was a force reboot in last installation."
+    break
+}
+
 # 检查必要的文件路径，如果安装程序或者属性文件不存在则退出执行
 if (-not (Test-Path $cdsinstaller)) {
     Write-Warning -Message "Doesn't detected installer, expected path is $($cdsinstaller)"
@@ -55,20 +61,29 @@ if (-not (Test-Path $aicprop )) {
     Write-Warning -Message "Doesn't detected AIC config file, expected path is $($aicprop)"
     break
 }
-if (-not (Test-Path $netBase)) {
-    Write-Warning -Message "Doesn't detected .Net source file, expected path is $($netBase), Please confirm this is the expected behavior, it will continue after 10 seconds, if not, press CTRL+C to terminate the installation"
-    Start-Sleep -Seconds 10
-}
+# if (-not (Test-Path $netBase)) {
+#     Write-Warning -Message "Doesn't detected .Net source file, expected path is $($netBase), Please confirm this is the expected behavior, it will continue after 10 seconds, if not, press CTRL+C to terminate the installation"
+#     Start-Sleep -Seconds 10
+# }
 Write-Host ((Get-Date).ToString() + "  All needed files present, installation start immediately") -ForegroundColor Cyan
 
-# 安装NetFX,20H2之前的系统用releaseID，例如2004，2009这种。20H2之后的用displayID，例如21H1，21H2这种
+# 安装NetFX,20H2之前的系统用releaseID，例如2004，1909这种。20H2(含)之后的用displayID，例如21H1，21H2这种
 $OSVersion = (Get-Item "HKLM:SOFTWARE\Microsoft\Windows NT\CurrentVersion").GetValue('DisplayVersion')
 
 if ($null -eq $OSVersion) {
     $OSVersion = (Get-Item "HKLM:SOFTWARE\Microsoft\Windows NT\CurrentVersion").GetValue('ReleaseID')
 }
+Write-Host ((Get-Date).ToString() + "  Detect OS Version is $($OSVersion)") -ForegroundColor Cyan
 
 $netsxs = Join-Path $netBase $OSVersion
+
+if (-not (Test-Path $netsxs)) {
+    $netsxs = Join-Path $installBase "Setup\Tools\SPT\assets\netfx3\win10\" | Join-Path -ChildPath $OSVersion
+    if (-not(Test-Path $netsxs)) {
+        Write-Warning -Message "Doesn't detected .Net source file, expected path is $($netsxs), Please confirm this is the expected behavior, it will continue after 10 seconds, if not, press CTRL+C to terminate the installation"
+        Start-Sleep -Seconds 10
+    }
+}
 if ((Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WCF-NonHTTP-Activation" }).State -eq "disabled") {
     Write-Host ((Get-Date).ToString() + "  Enable netFx3.5") -ForegroundColor Green
     Enable-WindowsOptionalFeature -Online -FeatureName NetFx3, WCF-NonHTTP-Activation -All -LimitAccess -Source $netsxs | Out-Null
@@ -77,7 +92,7 @@ if ((Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WCF
 # 检测NETFX3是否启用成功
 if ((Get-WindowsOptionalFeature -Online -FeatureName "NetFX3").State -ne "Enabled") {
     Write-Warning -Message "Detected .NetFX3 was not successfully activated, installation was terminated"
-    Add-Content -Path (Join-Path $shareBase "Exception.log") -Value ($env:COMPUTERNAME + "`tNetFX3")
+    Add-Content -Path (Join-Path $shareBase "Exception.log") -Value ($env:COMPUTERNAME + "`tNetFX3`t" + $OSVersion)
     break
 }
 
