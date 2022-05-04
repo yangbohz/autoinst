@@ -4,21 +4,23 @@
 # 是否生成啰嗦版SVT报告，默认不生成
 $SVTAll = $false
 
+# 安装waters驱动，默认是安装alliance，如果需要安装HClass，需要更改一下脚本中的文件内容
+$installWaters = $false
+
+# 安装Thermo驱动
+$installThermo = $false
+
 # 配置结束
 #################################
 
 
-# 获取配置文件
-# $conf = (Get-Content -Path ($PSScriptRoot + "\conf.json") -Encoding UTF8 | ConvertFrom-Json)
-# 自用调试
-# $conf = (Get-Content -Path ./conf.json -Encoding UTF8 | ConvertFrom-Json)
 # 共享目录路径
-# $shareBase = "\\" + $conf.ServerName + "\Agilent\"
+# $shareBase = "\\olss\Agilent\"
 $shareBase = (Get-ItemProperty $PSScriptRoot).Parent.FullName
 # 安装文件文件夹名称
 $installBase = Join-Path $shareBase "OpenLabCDS-2.6.0.841"
 # .net安装文件存放位置（Win10的sxs下面的文件也在这里）
-$netBase = Join-Path $shareBase "dotNet"
+$netBase = Join-Path $installBase "dotNet"
 # AIC的安装属性文件名
 $aicprop = Join-Path $installBase "aic.properties"
 # 客户端的安装属性文件
@@ -28,13 +30,15 @@ $drvbase = Join-Path $installBase "Drivers"
 
 # 安装程序，现场准备程序，补丁包以及Adobe Reader的执行程序名
 $cdsinstaller = Join-Path $installBase "Setup\CDSInstaller.exe"
-$cdshf = Join-Path $installBase "OpenLAB_CDS_Update.exe"
-# 英文版adobe及现场准备路径
+$cdshf = Join-Path $installBase "Update\OpenLAB_CDS_Update.exe"
+# adobe,WATERS自动安装响应文件等与语言有关的东西,英文版
 if ([System.Globalization.Cultureinfo]::InstalledUICulture.LCID -eq "1033") {
+    $rspfile = Join-Path $drvbase "3P\Waters\Push Install\en\ICS_Response_EN_InstallAll_Agilent.rsp"
     $adobe = (Get-ChildItem -Path (Join-Path $installBase "Setup\Tools\Adobe\Reader\*" ) -Recurse -Include *US* -ErrorAction SilentlyContinue).FullName
 }
 else {
-    # 中文版adobe及现场准备路径
+    # 中文版
+    $rspfile = Join-Path $drvbase "3P\Waters\Push Install\zh\ICS_Response_ZH_InstallAll_Agilent.rsp"
     $adobe = (Get-ChildItem -Path (Join-Path $installBase "Setup\Tools\Adobe\Reader\*" ) -Recurse -Include *CN* -ErrorAction SilentlyContinue).FullName
 }
 
@@ -61,32 +65,29 @@ if (-not (Test-Path $aicprop )) {
     Write-Warning -Message "Doesn't detected AIC config file, expected path is $($aicprop)"
     break
 }
-# if (-not (Test-Path $netBase)) {
-#     Write-Warning -Message "Doesn't detected .Net source file, expected path is $($netBase), Please confirm this is the expected behavior, it will continue after 10 seconds, if not, press CTRL+C to terminate the installation"
-#     Start-Sleep -Seconds 10
-# }
+if (-not (Test-Path $netBase)) {
+    Write-Warning -Message "Doesn't detected .Net source file, expected path is $($netBase), Please confirm this is the expected behavior, it will continue after 10 seconds, if not, press CTRL+C to terminate the installation"
+    Start-Sleep -Seconds 10
+}
 Write-Host ((Get-Date).ToString() + "  All needed files present, installation start immediately") -ForegroundColor Cyan
 
-# 安装NetFX,20H2之前的系统用releaseID，例如2004，1909这种。20H2(含)之后的用displayID，例如21H1，21H2这种
-$OSVersion = (Get-Item "HKLM:SOFTWARE\Microsoft\Windows NT\CurrentVersion").GetValue('DisplayVersion')
+# 安装NetFX, 使用Windows的数字Build ID，例如19044（对应于win10 21H2）
+$OSVersion = [System.Environment]::OSVersion.Version.Build
 
-if ($null -eq $OSVersion) {
-    $OSVersion = (Get-Item "HKLM:SOFTWARE\Microsoft\Windows NT\CurrentVersion").GetValue('ReleaseID')
-}
-Write-Host ((Get-Date).ToString() + "  Detect OS Version is $($OSVersion)") -ForegroundColor Cyan
+Write-Host ((Get-Date).ToString() + "  Detect OS Build is $($OSVersion)") -ForegroundColor Cyan
 
-$netsxs = Join-Path $netBase $OSVersion
-
-if (-not (Test-Path $netsxs)) {
-    $netsxs = Join-Path $installBase "Setup\Tools\SPT\assets\netfx3\win10\" | Join-Path -ChildPath $OSVersion
-    if (-not(Test-Path $netsxs)) {
-        Write-Warning -Message "Doesn't detected .Net source file, expected path is $($netsxs), Please confirm this is the expected behavior, it will continue after 10 seconds, if not, press CTRL+C to terminate the installation"
-        Start-Sleep -Seconds 10
+if ((Get-WindowsOptionalFeature -Online -FeatureName "WCF-NonHTTP-Activation" ).State -eq "disabled") {
+    Get-ChildItem $netBase -Directory | ForEach-Object {
+        if ($_.BaseName -match $OSVersion) {
+            Write-Host ((Get-Date).ToString() + "  Enable netFx3.5, use sxs folder is $($_.BaseName)") -ForegroundColor Green
+            try {
+                Enable-WindowsOptionalFeature -Online -FeatureName NetFx3, WCF-NonHTTP-Activation -All -LimitAccess -Source $_.FullName | Out-Null
+            }
+            catch {
+                Write-Warning -Message "error occur, go next"
+            }
+        }
     }
-}
-if ((Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WCF-NonHTTP-Activation" }).State -eq "disabled") {
-    Write-Host ((Get-Date).ToString() + "  Enable netFx3.5") -ForegroundColor Green
-    Enable-WindowsOptionalFeature -Online -FeatureName NetFx3, WCF-NonHTTP-Activation -All -LimitAccess -Source $netsxs | Out-Null
 }
 
 # 检测NETFX3是否启用成功
@@ -184,22 +185,27 @@ if (Test-Path $cdshf) {
     }
 }
 
+# 卸载备份/还原实用程序, 2.6Update05会在客户端/AIC上额外安装
+Write-Host ((Get-Date).ToString() + "  Start to uninstall B&R") -ForegroundColor Magenta
+Start-Process msiexec -ArgumentList "/x {A8327120-9557-4FB9-A38D-2703ED79B7C5} /qn" -Wait #备份
+Start-Process msiexec -ArgumentList "/x {01C23600-21B6-41B9-8CFD-6ED554CE268C} /qn" -Wait #还原
+
 # 安装adobe阅读器
 Write-Host ((Get-Date).ToString() + "  Start to install Adobe Reader") -ForegroundColor Green
 Start-Process $adobe -ArgumentList "/sAll /rs EULA_ACCEPT=YES REMOVE_PREVIOUS=YES" -Wait
 
-# 驱动
-Get-ChildItem -Path $drvbase *.msi -Recurse | Where-Object { $_.FullName -notlike "*AIC*" } | Sort-Object -Property Name | ForEach-Object {
+# 标准msi驱动
+Get-ChildItem -Path $drvbase -Include *.msi -Recurse | Where-Object { $_.FullName -notlike "*\AIC\*" -and $_.FullName -notlike "*\3P\*" } | Sort-Object -Property Name | ForEach-Object {
     $msi = $_.FullName
     Write-Host ((Get-Date).ToString() + "  Start to install " + $_.BaseName) -ForegroundColor Green
-    Start-Process MSIEXEC -ArgumentList "/qn /i `"$msi`" /norestart" -Wait
+    Start-Process msiexec -ArgumentList "/qn /i `"$msi`" /norestart" -Wait
 }
 
 # msp补丁
-Get-ChildItem -Path $drvbase *.msp -Recurse | Where-Object { $_.FullName -notlike "*AIC*" } | Sort-Object -Property Name | ForEach-Object {
+Get-ChildItem -Path $drvbase -Include *.msp -Recurse | Where-Object { $_.FullName -notlike "*AIC*" -and $_.FullName -notlike "*\3P\*" } | Sort-Object -Property Name | ForEach-Object {
     $msp = $_.FullName
     Write-Host ((Get-Date).ToString() + "  Start to install " + $_.BaseName) -ForegroundColor Green
-    Stop-Process msiexec -ArgumentList "/qn /p `"$msp`" /norestart" -Wait
+    Start-Process msiexec -ArgumentList "/qn /p `"$msp`" /norestart" -Wait
 }
 
 # # PalXT驱动
@@ -207,6 +213,32 @@ Get-ChildItem -Path $drvbase *.msp -Recurse | Where-Object { $_.FullName -notlik
 #     Write-Host ((Get-Date).ToString() + "  Start to install Palxt driver") -ForegroundColor Green
 #     Start-Process "$drvbase\palxt.exe" -ArgumentList "/S /v/qn" -Wait
 # }
+
+# Waters驱动
+if ($installWaters) {
+    # 检查rsp文件内容是否正确，如不正确，进行修改
+    [xml]$rsp = Get-Content $rspfile
+    if ($rsp.Configuration.WORKING_DIRECTORY -ne "$drvbase\3P\Waters") {
+        $rsp.Configuration.WORKING_DIRECTORY = "$drvbase\3P\Waters"
+        $rsp.Configuration.LOG_FILE_NETWORK_LOCATION = "$drvbase\3P\Waters\Logs"
+        if ($rspfile -contains "ICS_Response_EN_InstallAll_Agilent") {
+            $rsp.Configuration.ICS_LIST = "$drvbase\3P\Waters\Push Install\en\ICS_Agilent.txt"
+        }
+        else {
+            $rsp.Configuration.ICS_LIST = "$drvbase\3P\Waters\Push Install\zh\ICS_Agilent.txt"
+        }
+        $rsp.Save($rspfile)
+    }
+    Write-Host ((Get-Date).ToString() + "  Start to install Waters driver") -ForegroundColor Green
+    Start-Process "$drvbase\3P\Waters\Setup.exe" -ArgumentList "/responseFile $rspFile" -Wait
+    Start-Process msiexec -ArgumentList "/qn /i `"$drvbase\3P\Waters.Alliance.Drivers.OLCDS2.Setup.msi`" /norestart" -Wait
+}
+
+# Thermo 驱动
+if ($installThermo) {
+    Write-Host ((Get-Date).ToString() + "  Start to install Thermo driver") -ForegroundColor Green
+    Start-Process "$drvbase\3P\Thermo\Install.exe" -ArgumentList "/q /norestart" -Wait
+}
 
 # 运行SVT工具，默认为监测到的产品生成简短报告
 $svthome = (Get-ItemProperty -Path "HKLM:SOFTWARE\WOW6432Node\Agilent Technologies\IQTool").InstallLocation

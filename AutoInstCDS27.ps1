@@ -1,4 +1,4 @@
-﻿#################################
+#################################
 # 配置部分
 
 # 是否生成啰嗦版SVT报告，默认不生成
@@ -28,7 +28,7 @@ $drvbase = Join-Path $installBase "Drivers"
 
 # 安装程序，现场准备程序，补丁包以及Adobe Reader的执行程序名
 $cdsinstaller = Join-Path $installBase "Setup\CDSInstaller.exe"
-$cdshf = Join-Path $installBase "OpenLAB_CDS_Update.exe"
+$cdshf = Join-Path $installBase "Update\OpenLAB_CDS_Update.exe"
 # 英文版adobe及现场准备路径
 if ([System.Globalization.Cultureinfo]::InstalledUICulture.LCID -eq "1033") {
     $adobe = (Get-ChildItem -Path (Join-Path $installBase "Setup\Tools\Adobe\Reader\*" ) -Recurse -Include *US* -ErrorAction SilentlyContinue).FullName
@@ -112,9 +112,9 @@ else {
  
 }
 # 安装dotNetCore库
-Write-Host ((Get-Date).ToString() + "  Start to install dotNetCore runtime lib") -ForegroundColor Green
-Start-Process -FilePath "$installBase\Setup\redist\DotnetCore\windowsdesktop-runtime-3.1.10-win-x64.exe" -ArgumentList "/install /quiet /norestart" -Wait
-Start-Process -FilePath "$installBase\Setup\redist\DotnetCore\aspnetcore-runtime-3.1.10-win-x64.exe" -ArgumentList "/install /quiet /norestart" -Wait
+# Write-Host ((Get-Date).ToString() + "  Start to install dotNetCore runtime lib") -ForegroundColor Green
+# Start-Process -FilePath "$installBase\Setup\redist\DotnetCore\windowsdesktop-runtime-3.1.10-win-x64.exe" -ArgumentList "/install /quiet /norestart" -Wait
+# Start-Process -FilePath "$installBase\Setup\redist\DotnetCore\aspnetcore-runtime-3.1.10-win-x64.exe" -ArgumentList "/install /quiet /norestart" -Wait
 
 # 安装VC运行库
 Write-Host ((Get-Date).ToString() + "  Start to install C++ runtime lib") -ForegroundColor Green

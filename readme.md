@@ -10,7 +10,7 @@
 
 ## 限制
 
-自动安装的驱动仅限于msi格式的安装包,如果非msi安装包有静默参数(具体实现方式可以参考palxt驱动的安装命令),也可以修改脚本实现自动安装,但是目前Thermo SII以及Waters驱动均不具有静默安装参数,故无法实现
+自动安装的驱动仅限于msi格式的安装包,如果非msi安装包有静默参数(具体实现方式可以参考palxt驱动的安装命令),也可以修改脚本实现自动安装,Thermo SII以及Waters驱动如果需要一起安装，需要修改一下脚本的配置部分以及内部的安装具体文件名。
 
 ## 准备条件
 
@@ -21,35 +21,36 @@
 5. 确定AIC的计算机名,如果AIC的计算机名不含有**AIC**字样,把AICList.txt中写上预计的AIC计算机名,一行一个。如果AIC的计算机名中包含**AIC**字样，则将AICList.txt文件直接删除即可
 6. 将下面的两个SPT配置文件内容清空,防止安装过程中自动重启
 
-```
+```text
    OpenLab (CDS, ECMXT)~2.6~(Client, CMServices)~Win10.sysprep
    OpenLab CDS~2.6~AIC~Win10.sysprep
 ```
 
 7. 如果未使用预定义的安捷伦策略，SPT文件夹下面需要有**IES Customerzed for CDS 2.6**配置文件的存在
 
-
 ### 要求的目录结构
 
-```
+```text
 共享根路径
-├─OpenLabCDS-2.6.0.841(**)
-│  ├─Drivers(**)
-│  │  ├─10-GC Drivers.msi
+├─OpenLabCDS-2.6.0.841*
+│  ├─Drivers*
+│  │  ├─3P*
+│  │  │  ├-Thermo*
+│  │  │  ├-Waters*
+│  │  │  └-Waters.Driver.msi
+│  │  ├─AIC*
+│  │  ├─010-GC Drivers.msi
 │  │  └-其他msi格式安装包,名称随意,按名称顺序进行安装
-│  ├-clt.properties(**)
-│  ├-aic.properties(**这两个文件参考手册自行生成)
-│  ├-OpenLab_CDS_Update.exe(**如果有补丁,将客户端补丁解压出来的这个文件放在此处,如果没有,就不用管了)
+│  ├-Update*(此文件夹放置解压出的更新包)
+│  │  ├-OpenLab_CDS_Update.exe
+│  │  └-其他补丁文件
+│  ├-clt.properties*
+│  ├-aic.properties*(这两个文件参考手册自行生成)
 │  └-setup.exe(其他标准的文件此处不再列出)
-├─dotNet(**)
-│  ├─21H1
-│  ├─2004
-│  ├─2009
-│  └─其他年份版本的netfx3运行库,win10版本要写正确
 └─AutoInst(本脚本位置,目录名可更改)
 ```
 
-上面的文件结构中,标注有两个*符号的文件名或者目录名均不可更改
+上面的文件结构中,标注有*符号的文件名或者目录名均不可更改, 3P文件夹仅有在需要安装Thermo或者Waters驱动的时候才需要建立，里面分别建立对应的文件夹即可，同时需要修改配套的脚本头部的开关。
 
 ## 运行方式
 
@@ -63,3 +64,16 @@
 - Update_Summary.log    补丁更新情况汇总
 - Exception.log         异常汇总（如无异常，将不生成）
 - SVT_Summary.log       SVT报告情况汇总
+
+## 安装流程
+
+1. 启用.netfx 3.5
+2. 根据AIC列表或者计算机名称安装AIC/客户端
+3. 如果有补丁，安装
+4. 卸载备份还原工具（仅2.6更新过的版本）
+5. 安装adobe
+6. 搜索Drivers下面的msi文件，根据名称逐一安装（排除AIC以及3P文件夹）
+7. 安装Drivers下面的msp文件
+8. 安装Waters或者thermo驱动
+9. 执行SVT，写入汇总文件
+10. 执行额外的服务修正
