@@ -4,8 +4,10 @@
 # 是否生成啰嗦版SVT报告，默认不生成
 $SVTAll = $false
 
-# 安装waters驱动，默认是安装alliance，如果需要安装HClass，需要更改一下脚本中的文件内容
+# 安装waters驱动，默认是安装alliance，如果需要安装HClass，把下面的installHClass改成true,否则仅改这里即可
 $installWaters = $false
+# 安装Waters H-Class
+$installHClass = $false
 
 # 安装Thermo驱动
 $installThermo = $false
@@ -104,7 +106,7 @@ if (-not (Test-Path -Path $logbase)) {
 # 检查是否应用了预置组策略，如果没有检测到自制安捷伦壁纸，则认为没有应用组策略，将使用SPT进行系统设定
 $spt = Join-Path $installBase "Setup\Tools\SPT\SystemPreparationTool.exe"
 if (-not (Test-Path -Path "C:\Windows\Agilent.png")) {
-    Write-Host ((Get-Date).ToString() + "  +_+ Seemed Agilent Group Policy not be applyed. SPT will run full configure") -ForegroundColor Yellow
+    Write-Host ((Get-Date).ToString() + "  +_+ Seemed Agilent Group Policy not be applied. SPT will run full configure") -ForegroundColor Yellow
     Start-Process -FilePath $spt -ArgumentList "-silent -norestart ConditionRecommended=True ConfigurationName=`"IES Customerzed for CDS 2.6`""
 }
 else {
@@ -221,17 +223,35 @@ if ($installWaters) {
     if ($rsp.Configuration.WORKING_DIRECTORY -ne "$drvbase\3P\Waters") {
         $rsp.Configuration.WORKING_DIRECTORY = "$drvbase\3P\Waters"
         $rsp.Configuration.LOG_FILE_NETWORK_LOCATION = "$drvbase\3P\Waters\Logs"
+        # 检测为英文模式
         if ($rspfile -contains "ICS_Response_EN_InstallAll_Agilent") {
-            $rsp.Configuration.ICS_LIST = "$drvbase\3P\Waters\Push Install\en\ICS_Agilent.txt"
+            # 是否是HClass,如果是,安装完整版驱动包,否则进安装alliance驱动包
+            if ($installHClass) {
+                $rsp.Configuration.ICS_LIST = "$drvbase\3P\Waters\Push Install\en\ICS_List_EN.txt"
+            }
+            else {
+                $rsp.Configuration.ICS_LIST = "$drvbase\3P\Waters\Push Install\en\ICS_Agilent_Alliance_EN.txt"
+            }
         }
+        # 中文模式
         else {
-            $rsp.Configuration.ICS_LIST = "$drvbase\3P\Waters\Push Install\zh\ICS_Agilent.txt"
+            if ($installHClass) {
+                $rsp.Configuration.ICS_LIST = "$drvbase\3P\Waters\Push Install\zh\ICS_List_ZH.txt"
+            }
+            else {
+                $rsp.Configuration.ICS_LIST = "$drvbase\3P\Waters\Push Install\zh\ICS_Agilent_Alliance_ZH.txt"
+            }
         }
         $rsp.Save($rspfile)
     }
-    Write-Host ((Get-Date).ToString() + "  Start to install Waters driver") -ForegroundColor Green
+    Write-Host ((Get-Date).ToString() + "  Start to install Waters Driver Pack") -ForegroundColor Green
     Start-Process "$drvbase\3P\Waters\Setup.exe" -ArgumentList "/responseFile $rspFile" -Wait
+    Write-Host ((Get-Date).ToString() + "  Start to install Alliance Driver") -ForegroundColor Green
     Start-Process msiexec -ArgumentList "/qn /i `"$drvbase\3P\Waters.Alliance.Drivers.OLCDS2.Setup.msi`" /norestart" -Wait
+    if ($installHClass) {
+        Write-Host ((Get-Date).ToString() + "  Start to install H-Class Driver") -ForegroundColor Green
+        Start-Process msiexec -ArgumentList "/qn /i `"$drvbase\3P\Agilent_OpenLabCDS_Waters_Acquity_Drivers.msi`" /norestart" -Wait
+    }
 }
 
 # Thermo 驱动
