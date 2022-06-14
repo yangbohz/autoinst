@@ -224,7 +224,7 @@ if ($installWaters) {
         $rsp.Configuration.WORKING_DIRECTORY = "$drvbase\3P\Waters"
         $rsp.Configuration.LOG_FILE_NETWORK_LOCATION = "$drvbase\3P\Waters\Logs"
         # 检测为英文模式
-        if ($rspfile -contains "ICS_Response_EN_InstallAll_Agilent") {
+        if ($rspfile -match "ICS_Response_EN_InstallAll_Agilent") {
             # 是否是HClass,如果是,安装完整版驱动包,否则进安装alliance驱动包
             if ($installHClass) {
                 $rsp.Configuration.ICS_LIST = "$drvbase\3P\Waters\Push Install\en\ICS_List_EN.txt"
@@ -245,7 +245,7 @@ if ($installWaters) {
         $rsp.Save($rspfile)
     }
     Write-Host ((Get-Date).ToString() + "  Start to install Waters Driver Pack") -ForegroundColor Green
-    Start-Process "$drvbase\3P\Waters\Setup.exe" -ArgumentList "/responseFile $rspFile" -Wait
+    Start-Process "$drvbase\3P\Waters\Setup.exe" -ArgumentList "/responseFile `"$rspFile`"" -Wait
     Write-Host ((Get-Date).ToString() + "  Start to install Alliance Driver") -ForegroundColor Green
     Start-Process msiexec -ArgumentList "/qn /i `"$drvbase\3P\Waters.Alliance.Drivers.OLCDS2.Setup.msi`" /norestart" -Wait
     if ($installHClass) {
@@ -257,7 +257,11 @@ if ($installWaters) {
 # Thermo 驱动
 if ($installThermo) {
     Write-Host ((Get-Date).ToString() + "  Start to install Thermo driver") -ForegroundColor Green
-    Start-Process "$drvbase\3P\Thermo\Install.exe" -ArgumentList "/q /norestart" -Wait
+    # 赛默飞安装后会启动仪器服务，常规的wait参数会卡住，用另外的一种等待方式
+    $thermoInstProc = Start-Process "$drvbase\3P\Thermo\Install.exe" -ArgumentList "/q /norestart" -PassThru
+    $thermoInstProc.WaitForExit()
+    # 把变色龙仪器服务设为自动运行，否则第一次启动赛默飞仪器会要求管理员输入账号密码
+    Set-Service -DisplayName "Chromeleon 7 Instrument Controller Service" -StartupType Automatic
 }
 
 # 运行SVT工具，默认为监测到的产品生成简短报告
