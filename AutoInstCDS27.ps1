@@ -36,12 +36,12 @@ $cdshf = Join-Path $installBase "Update\OpenLAB_CDS_Update.exe"
 # adobe,WATERS自动安装响应文件等与语言有关的东西,英文版
 if ([System.Globalization.Cultureinfo]::InstalledUICulture.LCID -eq "1033") {
     $rspfile = Join-Path $drvbase "3P\Waters\Push Install\en\ICS_Response_EN_InstallAll_Agilent.rsp"
-    $adobe = (Get-ChildItem -Path (Join-Path $installBase "Setup\Tools\Adobe\Reader\*" ) -Recurse -Include *US* -ErrorAction SilentlyContinue).FullName
+    # $adobe = (Get-ChildItem -Path (Join-Path $installBase "Setup\Tools\Adobe\Reader\*" ) -Recurse -Include *US* -ErrorAction SilentlyContinue).FullName
 }
 else {
     # 中文版
     $rspfile = Join-Path $drvbase "3P\Waters\Push Install\zh\ICS_Response_ZH_InstallAll_Agilent.rsp"
-    $adobe = (Get-ChildItem -Path (Join-Path $installBase "Setup\Tools\Adobe\Reader\*" ) -Recurse -Include *CN* -ErrorAction SilentlyContinue).FullName
+    # $adobe = (Get-ChildItem -Path (Join-Path $installBase "Setup\Tools\Adobe\Reader\*" ) -Recurse -Include *CN* -ErrorAction SilentlyContinue).FullName
 }
 
 # 固定目录位置，不用管
@@ -148,18 +148,18 @@ Start-Process EXPLORER -ArgumentList $logbase
 # 根据上一步判断结果安装工作站
 if ($isAIC) {
     Write-Host ((Get-Date).ToString() + "  Start to install as AIC") -ForegroundColor Green
-    Start-Process $cdsinstaller -ArgumentList "-s -c $aicprop CheckStatusOnly=True" -Wait
+    Start-Process $cdsinstaller -ArgumentList "-s -config $aicprop" -Wait
     # 卸载Sample Scheduler插件，不卸载会在系统里报告大量错误
     # Start-Process msiexec -ArgumentList "/x {645F3E18-1ED9-458F-A8A9-2EF44104B074} /qn" -wait
 }
 else {
     Write-Host ((Get-Date).ToString() + "  Start to install as Client") -ForegroundColor Green
-    Start-Process $cdsinstaller -ArgumentList "-s -c $cltprop CheckStatusOnly=True" -Wait
+    Start-Process $cdsinstaller -ArgumentList "-s -config $cltprop" -Wait
 }
 
 # 检测安装状态
-# 搜安装日志目录，只搜索20开头的目录，防止找到软件升级日志
-$lastinstdir = Get-ChildItem $logbase -Filter 20* | Sort-Object -Property CreationTime -Descending | Select-Object -First 1
+# 搜安装日志目录，只搜索20开头的目录，防止找到软件升级日志 2.7安装到半截会生成一个空日志文件夹，改为找倒数第二个
+$lastinstdir = Get-ChildItem $logbase -Filter 20* | Sort-Object -Property CreationTime -Descending | Select-Object -First 2 | Select-Object -Skip 1
 $lastinstlog = Join-Path $lastinstdir.FullName ("Agilent_OpenLab_CDS_" + $lastinstdir.BaseName + ".log")
 $instStatus = Get-Content -Path $lastinstlog -Encoding utf8 -Tail 1
 # 安装日志最后一行的后半部分内容。预期输出为类似下面的内容,如果检测不到安装成功的标志，写入异常日志。
@@ -192,9 +192,9 @@ if (Test-Path $cdshf) {
 # Start-Process msiexec -ArgumentList "/x {A8327120-9557-4FB9-A38D-2703ED79B7C5} /qn" -Wait #备份
 # Start-Process msiexec -ArgumentList "/x {01C23600-21B6-41B9-8CFD-6ED554CE268C} /qn" -Wait #还原
 
-# 安装adobe阅读器
-Write-Host ((Get-Date).ToString() + "  Start to install Adobe Reader") -ForegroundColor Green
-Start-Process $adobe -ArgumentList "/sAll /rs EULA_ACCEPT=YES REMOVE_PREVIOUS=YES" -Wait
+# 安装adobe阅读器 2.7不再集成安装包
+# Write-Host ((Get-Date).ToString() + "  Start to install Adobe Reader") -ForegroundColor Green
+# Start-Process $adobe -ArgumentList "/sAll /rs EULA_ACCEPT=YES REMOVE_PREVIOUS=YES" -Wait
 
 # 标准msi驱动
 Get-ChildItem -Path $drvbase -Include *.msi -Recurse | Where-Object { $_.FullName -notlike "*\AIC\*" -and $_.FullName -notlike "*\3P\*" } | Sort-Object -Property Name | ForEach-Object {
@@ -270,7 +270,8 @@ if ($installThermo) {
     $thermoInstProc = Start-Process "$drvbase\3P\Thermo\Install.exe" -ArgumentList "/q /norestart"
     $thermoInstProc.WaitForExit()
     # 把变色龙仪器服务设为自动运行，否则第一次启动赛默飞仪器会要求管理员输入账号密码
-    Set-Service -DisplayName "Chromeleon 7 Instrument Controller Service" -StartupType Automatic
+    Set-Service -Name "ChromeleonRealTimeKernel" -StartupType Automatic
+    Set-Service -Name "ChromeleonInstrumentService" -StartupType Automatic
 }
 
 # 运行SVT工具，默认为监测到的产品生成简短报告
