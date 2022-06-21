@@ -147,7 +147,7 @@ Start-Process EXPLORER -ArgumentList $logbase
 
 # 根据上一步判断结果安装工作站
 if ($isAIC) {
-    Write-Host ((Get-Date).ToString() + "  Start to install as AIC") -ForegroundColor Green
+    Write-Host ((Get-Date).ToString() + "  Start to install as AIC") -ForegroundColor Magenta
     Start-Process $cdsinstaller -ArgumentList "-s -config $aicprop" -Wait
     # 卸载Sample Scheduler插件，不卸载会在系统里报告大量错误
     # Start-Process msiexec -ArgumentList "/x {645F3E18-1ED9-458F-A8A9-2EF44104B074} /qn" -wait
