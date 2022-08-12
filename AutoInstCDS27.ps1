@@ -159,12 +159,13 @@ else {
 
 # 检测安装状态
 # 搜安装日志目录，只搜索20开头的目录，防止找到软件升级日志 2.7安装到半截会生成一个空日志文件夹，改为找倒数第一个正常的log文件
-Get-ChildItem $logbase -Filter 20* | Sort-Object -Property CreationTime -Descending | ForEach-Object {
-    $lastinstlog = Join-Path $_.FullName ("Agilent_OpenLab_CDS_" + $_.BaseName + ".log")
+$logDirs = Get-ChildItem $logbase -Filter 20* | Sort-Object -Property CreationTime -Descending
+foreach ($logDir in $logDirs) {
+    $lastinstlog = Join-Path $logDir.FullName ("Agilent_OpenLab_CDS_" + $logDir.BaseName + ".log")
     if (Test-Path $lastinstlog) {
-        continue
+        break
     }
-} 
+}
 
 $instStatus = Get-Content -Path $lastinstlog -Encoding utf8 -Tail 1
 # 安装日志最后一行的后半部分内容。预期输出为类似下面的内容,如果检测不到安装成功的标志，写入异常日志。
