@@ -273,7 +273,7 @@ if ($installWaters) {
 if ($installThermo) {
     Write-Host ((Get-Date).ToString() + "  Start to install Thermo driver") -ForegroundColor Green
     # 赛默飞安装后会启动仪器服务，常规的wait参数会卡住，用另外的一种等待方式
-    $thermoInstProc = Start-Process "$drvbase\3P\Thermo\Install.exe" -ArgumentList "/q /norestart"
+    $thermoInstProc = Start-Process "$drvbase\3P\Thermo\Install.exe" -ArgumentList "/q /norestart" -PassThru
     $thermoInstProc.WaitForExit()
     # 把变色龙仪器服务设为自动运行，否则第一次启动赛默飞仪器会要求管理员输入账号密码
     Set-Service -Name "ChromeleonRealTimeKernel" -StartupType Automatic
