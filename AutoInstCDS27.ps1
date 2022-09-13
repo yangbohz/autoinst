@@ -114,10 +114,6 @@ else {
     Start-Process -FilePath $spt -ArgumentList "-silent -norestart ConditionRecommended=True ConfigurationName=`"IES Customerzed for CDS 2.7 LITE`""
  
 }
-# 安装dotNetCore库
-# Write-Host ((Get-Date).ToString() + "  Start to install dotNetCore runtime lib") -ForegroundColor Green
-# Start-Process -FilePath "$installBase\Setup\redist\DotnetCore\windowsdesktop-runtime-3.1.10-win-x64.exe" -ArgumentList "/install /quiet /norestart" -Wait
-# Start-Process -FilePath "$installBase\Setup\redist\DotnetCore\aspnetcore-runtime-3.1.10-win-x64.exe" -ArgumentList "/install /quiet /norestart" -Wait
 
 # 安装VC运行库
 Write-Host ((Get-Date).ToString() + "  Start to install C++ runtime lib") -ForegroundColor Green
@@ -130,6 +126,13 @@ Start-Process -FilePath "$installBase\Setup\redist\vc_redist16.x64.EXE" -Argumen
 Start-Process -FilePath "$installBase\Setup\redist\vc_redist16.x86.EXE" -ArgumentList "-install -quiet -norestart" -Wait
 # https://github.com/abbodi1406/vcredist AllInOne C++运行库,安装的似乎有点乱，先不用。
 # Start-Process -FilePath "$installBase\Setup\redist\VisualCppRedist_AIO_x86_x64.exe" -ArgumentList "/ai58239" -Wait
+
+# 安装dotNetCore库
+Write-Host ((Get-Date).ToString() + "  Start to install dotNetCore runtime lib") -ForegroundColor Green
+Get-ChildItem -Path $netBase\core -Recurse -Include *.exe | ForEach-Object {
+    Write-Host ((Get-Date).ToString() + "  Start to install " + $_.BaseName) -ForegroundColor Green
+    Start-Process -FilePath $_.FullName -ArgumentList "/install /quiet /norestart" -Wait
+}
 
 # 判断是否AIC
 $aicList = Join-Path (Get-ItemProperty $PSScriptRoot).FullName AICList.txt
