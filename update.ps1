@@ -27,7 +27,7 @@ $cdshf = Join-Path $updateBase "OpenLAB_CDS_Update.exe"
 
 # 固定目录位置，不用管
 $logbase = Join-Path $env:ProgramData "Agilent\InstallLogs"
-$docpath = Join-Path $env:USERPROFILE "Documents"
+$svdest = Join-Path $updateBase "SVReports" $env:COMPUTERNAME
 
 # 检查必要的文件路径，如果安装程序或者属性文件不存在则退出执行
 Write-Host ((Get-Date).ToString() + "  Get update path $($cdshf)") -ForegroundColor Cyan
@@ -54,6 +54,12 @@ if (Test-Path $cdshf) {
 else {
     Write-Host ((Get-Date).ToString() + "  Update not present. Install driver directly") -ForegroundColor Magenta 
 }
+
+# 卸载备份/还原实用程序, 2.6Update05会在客户端/AIC上额外安装
+Write-Host ((Get-Date).ToString() + "  Start to uninstall B&R") -ForegroundColor Magenta
+Start-Process msiexec -ArgumentList "/x {A8327120-9557-4FB9-A38D-2703ED79B7C5} /qn" -Wait #备份
+Start-Process msiexec -ArgumentList "/x {01C23600-21B6-41B9-8CFD-6ED554CE268C} /qn" -Wait #还原
+
 # 驱动
 Get-ChildItem -Path $drvbase *.msi -Recurse | Sort-Object -Property Name | ForEach-Object {
     $msi = $_.FullName
@@ -93,7 +99,6 @@ $sv = 'C:\SVReports'
 # $dest = [Environment]::GetFolderPath("Desktop") + '\' + $iqoq + '\'
 # New-Item -Path $dest -ItemType Directory -ErrorAction SilentlyContinue
 # 在将svreport直接复制到“我的文档”中，ACE默认打开我的文档目录，放到这里会稍微省点麻烦。
-$dest = $docpath
 $rptnum = Get-ChildItem $sv | Measure-Object
 Get-ChildItem $sv *.pdf -Recurse | Sort-Object -Property CreationTime -Descending | Select-Object -First $rptnum.Count |
 ForEach-Object {
@@ -102,7 +107,7 @@ ForEach-Object {
     $newname = 'SVReport_{0}_{1}.pdf' -f $dirname, $crttm
     Rename-Item $_.fullname -NewName $newname
     $path = $_.directoryname + '\' + $newname
-    Copy-Item $path $dest
+    Copy-Item $path $svdest
 }
 
 # 检测生成的svt报告是否均为pass，生成汇总报告

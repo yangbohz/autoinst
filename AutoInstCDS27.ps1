@@ -297,7 +297,7 @@ $svthome = (Get-ItemProperty -Path "HKLM:SOFTWARE\WOW6432Node\Agilent Technologi
 #     }
 # }
 if ($SVTAll) {
-    Start-Process ($svthome + "\Bin\SFVTool.exe") -ArgumentList "-qt -slient -showall -p:`"all`" -pdf -xml"  -Wait
+    Start-Process ($svthome + "\Bin\SFVTool.exe") -ArgumentList "-qt -slient -showall -p:`"all`" -pdf -xml" -Wait
 }
 else {
     Start-Process ($svthome + "\Bin\SFVTool.exe") -ArgumentList "-qt -slient -shownothing -p:`"all`" -pdf -xml" -Wait
@@ -312,14 +312,25 @@ New-Item -Path $dest -ItemType Directory -ErrorAction SilentlyContinue
 # $docpath = Join-Path $env:USERPROFILE "Documents"
 # $dest = $docpath
 $rptnum = Get-ChildItem $sv | Measure-Object
+
+# ACE需要写入的文件类型信息
+$svACExml = @"
+<?xml version="1.0"?>
+<FileAttachedInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Info Category="General" DocInfo="SW|D1" />
+</FileAttachedInfo>
+"@
+
 Get-ChildItem $sv *.pdf -Recurse | Sort-Object -Property CreationTime -Descending | Select-Object -First $rptnum.Count |
 ForEach-Object {
-    $dirname = (Get-ItemProperty $_.FullName).Directory.Name
+    $dirName = (Get-ItemProperty $_.FullName).Directory.Name
     $crttm = (Get-ItemProperty $_.FullName).CreationTime.ToString("yyyyMMdd-HHmm") 
-    $newname = 'SVReport_{0}_{1}.pdf' -f $dirname, $crttm
-    Rename-Item $_.fullname -NewName $newname
-    $path = $_.directoryname + '\' + $newname
+    $newName = 'SVReport_{0}_{1}.pdf' -f $dirName, $crttm
+    Rename-Item $_.Fullname -newName $newName
+    $path = Join-Path $_.directoryname $newName
     Copy-Item $path $dest
+    $aceStream = $dest + "\" + $newName + ":AceFileAttachmentData.xml"
+    Add-Content -Path $aceStream -Value $svACExml
 }
 
 # 检测生成的svt报告是否均为pass，生成汇总报告
