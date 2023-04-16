@@ -280,7 +280,7 @@ if ($installThermo) {
     $thermoInstProc.WaitForExit()
     # 把变色龙仪器服务设为自动运行，否则第一次启动赛默飞仪器会要求管理员输入账号密码
     Set-Service -Name "ChromeleonRealTimeKernel" -StartupType Automatic
-    Set-Service -Name "ChromeleonInstrumentService" -StartupType Automatic
+    Set-Service -Name "ChromeleonInstrumentServer" -StartupType Automatic
 }
 
 # 运行SVT工具，默认为监测到的产品生成简短报告
