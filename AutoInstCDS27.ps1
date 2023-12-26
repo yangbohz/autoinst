@@ -1,4 +1,4 @@
-﻿#################################
+#################################
 # 配置部分
 
 # 是否生成啰嗦版SVT报告，默认不生成
@@ -7,7 +7,7 @@ $SVTAll = $false
 # 安装waters驱动，默认是安装alliance，如果需要安装HClass，把下面的installHClass改成true,否则仅改这里即可
 $installWaters = $false
 # 安装Waters H-Class
-$installHClass = $false
+# $installHClass = $false
 
 # 安装Thermo驱动
 $installThermo = $false
@@ -28,19 +28,19 @@ $aicprop = Join-Path $installBase "aic.properties"
 # 客户端的安装属性文件
 $cltprop = Join-Path $installBase "clt.properties"
 # 需要安装/更新的驱动，LabAdvisor也要放到这里面，注意要把MSI的安装文件放过来，不是散文件,安装时按按文件名称排序安装。
-$drvbase = Join-Path $installBase "Drivers"
+$drvBase = Join-Path $installBase "Drivers"
 
 # 安装程序，现场准备程序，补丁包以及Adobe Reader的执行程序名
 $cdsinstaller = Join-Path $installBase "Setup\CDSInstaller.exe"
 $cdshf = Join-Path $installBase "Update\OpenLAB_CDS_Update.exe"
 # adobe,WATERS自动安装响应文件等与语言有关的东西,英文版
 if ([System.Globalization.Cultureinfo]::InstalledUICulture.LCID -eq "1033") {
-    $rspfile = Join-Path $drvbase "3P\Waters\Push Install\en\ICS_Response_EN_InstallAll_Agilent.rsp"
+    $rspfile = Join-Path $drvBase "3P\Waters\Push Install\en\ICS_Response_EN_InstallAll.rsp"
     # $adobe = (Get-ChildItem -Path (Join-Path $installBase "Setup\Tools\Adobe\Reader\*" ) -Recurse -Include *US* -ErrorAction SilentlyContinue).FullName
 }
 else {
     # 中文版
-    $rspfile = Join-Path $drvbase "3P\Waters\Push Install\zh\ICS_Response_ZH_InstallAll_Agilent.rsp"
+    $rspfile = Join-Path $drvBase "3P\Waters\Push Install\zh\ICS_Response_ZH_InstallAll.rsp"
     # $adobe = (Get-ChildItem -Path (Join-Path $installBase "Setup\Tools\Adobe\Reader\*" ) -Recurse -Include *CN* -ErrorAction SilentlyContinue).FullName
 }
 
@@ -212,7 +212,7 @@ Start-Process msiexec -ArgumentList "/x {3A443F2E-8437-4B8D-9F25-EBC47CE54CBE} /
 # Start-Process $adobe -ArgumentList "/sAll /rs EULA_ACCEPT=YES REMOVE_PREVIOUS=YES" -Wait
 
 # 标准msi驱动
-Get-ChildItem -Path $drvbase -Include *.msi -Recurse | Where-Object { $_.FullName -notlike "*\AIC\*" -and $_.FullName -notlike "*\3P\*" } | Sort-Object -Property Name | ForEach-Object {
+Get-ChildItem -Path $drvBase -Filter *.msi | Sort-Object -Property Name | ForEach-Object {
     $msi = $_.FullName
     Write-Host ((Get-Date).ToString() + "  Start to install " + $_.BaseName) -ForegroundColor Green
     Start-Process msiexec -ArgumentList "/qn /i `"$msi`" /norestart" -Wait
@@ -220,7 +220,7 @@ Get-ChildItem -Path $drvbase -Include *.msi -Recurse | Where-Object { $_.FullNam
 
 # AIC额外安装的msi包
 if ($isAIC) {
-    Get-ChildItem -Path (Join-Path $drvbase "AIC") -Include *.msi | Sort-Object -Property Name | ForEach-Object {
+    Get-ChildItem -Path (Join-Path $drvBase "AIC") -Filter *.msi | Sort-Object -Property Name | ForEach-Object {
         $msi = $_.FullName
         Write-Host ((Get-Date).ToString() + "  Start to install " + $_.BaseName) -ForegroundColor Green
         Start-Process msiexec -ArgumentList "/qn /i `"$msi`" /norestart" -Wait
@@ -228,61 +228,65 @@ if ($isAIC) {
 }
 
 # msp补丁
-Get-ChildItem -Path $drvbase -Include *.msp -Recurse | Where-Object { $_.FullName -notlike "*AIC*" -and $_.FullName -notlike "*\3P\*" } | Sort-Object -Property Name | ForEach-Object {
+Get-ChildItem -Path $drvBase -Filter *.msp | Sort-Object -Property Name | ForEach-Object {
     $msp = $_.FullName
     Write-Host ((Get-Date).ToString() + "  Start to install " + $_.BaseName) -ForegroundColor Green
     Start-Process msiexec -ArgumentList "/qn /p `"$msp`" /norestart" -Wait
 }
 
 # # PalXT驱动
-# if (Test-Path (Join-Path $drvbase palxt.exe)) {
+# if (Test-Path (Join-Path $drvBase palxt.exe)) {
 #     Write-Host ((Get-Date).ToString() + "  Start to install Palxt driver") -ForegroundColor Green
-#     Start-Process "$drvbase\palxt.exe" -ArgumentList "/S /v/qn" -Wait
+#     Start-Process "$drvBase\palxt.exe" -ArgumentList "/S /v/qn" -Wait
 # }
 
 # Waters驱动
 if ($installWaters) {
     # 检查rsp文件内容是否正确，如不正确，进行修改
     [xml]$rsp = Get-Content $rspfile
-    if ($rsp.Configuration.WORKING_DIRECTORY -ne "$drvbase\3P\Waters") {
-        $rsp.Configuration.WORKING_DIRECTORY = "$drvbase\3P\Waters"
-        $rsp.Configuration.LOG_FILE_NETWORK_LOCATION = "$drvbase\3P\Waters\Logs"
+    if ($rsp.Configuration.WORKING_DIRECTORY -ne "$drvBase\3P\Waters") {
+        $rsp.Configuration.WORKING_DIRECTORY = "$drvBase\3P\Waters"
+        $rsp.Configuration.LOG_FILE_NETWORK_LOCATION = "$drvBase\3P\Waters\Logs"
         # 检测为英文模式
-        if ($rspfile -match "ICS_Response_EN_InstallAll_Agilent") {
+        if ($rspfile -match "ICS_Response_EN_InstallAll") {
             # 是否是HClass,如果是,安装完整版驱动包,否则仅安装alliance驱动包
-            if ($installHClass) {
-                $rsp.Configuration.ICS_LIST = "$drvbase\3P\Waters\Push Install\en\ICS_List_EN.txt"
-            }
-            else {
-                $rsp.Configuration.ICS_LIST = "$drvbase\3P\Waters\Push Install\en\ICS_Agilent_Alliance_EN.txt"
-            }
+            # if ($installHClass) {
+            $rsp.Configuration.ICS_LIST = "$drvBase\3P\Waters\Push Install\en\ICS_List_EN.txt"
+            # }
+            # else {
+            #     $rsp.Configuration.ICS_LIST = "$drvBase\3P\Waters\Push Install\en\ICS_Agilent_Alliance_EN.txt"
+            # }
         }
         # 中文模式
         else {
-            if ($installHClass) {
-                $rsp.Configuration.ICS_LIST = "$drvbase\3P\Waters\Push Install\zh\ICS_List_ZH.txt"
-            }
-            else {
-                $rsp.Configuration.ICS_LIST = "$drvbase\3P\Waters\Push Install\zh\ICS_Agilent_Alliance_ZH.txt"
-            }
+            # if ($installHClass) {
+            $rsp.Configuration.ICS_LIST = "$drvBase\3P\Waters\Push Install\zh\ICS_List_ZH.txt"
+            # }
+            # else {
+            #     $rsp.Configuration.ICS_LIST = "$drvBase\3P\Waters\Push Install\zh\ICS_Agilent_Alliance_ZH.txt"
+            # }
         }
         $rsp.Save($rspfile)
     }
     Write-Host ((Get-Date).ToString() + "  Start to install Waters Driver Pack") -ForegroundColor Green
-    Start-Process "$drvbase\3P\Waters\Setup.exe" -ArgumentList "/responseFile `"$rspFile`"" -Wait
-    Write-Host ((Get-Date).ToString() + "  Start to install Alliance Driver") -ForegroundColor Green
-    Start-Process msiexec -ArgumentList "/qn /i `"$drvbase\3P\Waters.Alliance.Drivers.OLCDS2.Setup.msi`" /norestart" -Wait
-    if ($installHClass) {
-        Write-Host ((Get-Date).ToString() + "  Start to install H-Class Driver") -ForegroundColor Green
-        Start-Process msiexec -ArgumentList "/qn /i `"$drvbase\3P\Agilent_OpenLabCDS_Waters_Acquity_Drivers.msi`" /norestart" -Wait
+    Start-Process "$drvBase\3P\Waters\Setup.exe" -ArgumentList "/responseFile `"$rspFile`"" -Wait
+    # Write-Host ((Get-Date).ToString() + "  Start to install Alliance Driver") -ForegroundColor Green
+    # Start-Process msiexec -ArgumentList "/qn /i `"$drvBase\3P\Waters.Alliance.Drivers.OLCDS2.Setup.msi`" /norestart" -Wait
+    # if ($installHClass) {
+    Write-Host ((Get-Date).ToString() + "  Start to install H-Class Driver") -ForegroundColor Green
+    Get-ChildItem -Path (Join-Path $drvBase "3P") -Filter *.msi | Sort-Object -Property Name | ForEach-Object {
+        $msi = $_.FullName
+        Write-Host ((Get-Date).ToString() + "  Start to install " + $_.BaseName) -ForegroundColor Green
+        Start-Process msiexec -ArgumentList "/qn /i `"$msi`" /norestart" -Wait
     }
+    # }
 }
 
 # Thermo 驱动
 if ($installThermo) {
     Write-Host ((Get-Date).ToString() + "  Start to install Thermo driver") -ForegroundColor Green
     # 赛默飞安装后会启动仪器服务，常规的wait参数会卡住，用另外的一种等待方式
-    $thermoInstProc = Start-Process "$drvbase\3P\Thermo\Install.exe" -ArgumentList "/q /norestart" -PassThru
+    $thermoInstProc = Start-Process "$drvBase\3P\Thermo\Install.exe" -ArgumentList "/q /norestart" -PassThru
     $thermoInstProc.WaitForExit()
     # 把变色龙仪器服务设为自动运行，否则第一次启动赛默飞仪器会要求管理员输入账号密码
     Set-Service -Name "ChromeleonRealTimeKernel" -StartupType Automatic
@@ -312,11 +316,11 @@ else {
 # 将SVT工具生成的PDF复制到我的文档中
 $sv = 'C:\SVReports'
 # 在桌面上生成IQOQ文件夹并将svreport复制过去
-$dest = Join-Path ([Environment]::GetFolderPath("Desktop")) IQOQ
-New-Item -Path $dest -ItemType Directory -ErrorAction SilentlyContinue
+$IQOQDest = Join-Path ([Environment]::GetFolderPath("Desktop")) IQOQ
+New-Item -Path $IQOQDest -ItemType Directory -ErrorAction SilentlyContinue
 # 在将svreport直接复制到“我的文档”中，ACE默认打开我的文档目录，放到这里会稍微省点麻烦。ACE3改了工作机制，不再使用文档作为默认位置，使用上面的方式。
 # $docpath = Join-Path $env:USERPROFILE "Documents"
-# $dest = $docpath
+# $IQOQDest = $docpath
 $rptnum = Get-ChildItem $sv | Measure-Object
 
 # ACE需要写入的文件类型信息
@@ -332,10 +336,10 @@ ForEach-Object {
     $dirName = (Get-ItemProperty $_.FullName).Directory.Name
     $crttm = (Get-ItemProperty $_.FullName).CreationTime.ToString("yyyyMMdd-HHmm") 
     $newName = 'SVReport_{0}_{1}.pdf' -f $dirName, $crttm
-    Rename-Item $_.Fullname -newName $newName
+    Rename-Item $_.Fullname -NewName $newName
     $path = Join-Path $_.directoryname $newName
-    Copy-Item $path $dest
-    $aceStream = $dest + "\" + $newName + ":AceFileAttachmentData.xml"
+    Copy-Item $path $IQOQDest
+    $aceStream = $IQOQDest + "\" + $newName + ":AceFileAttachmentData.xml"
     Add-Content -Path $aceStream -Value $svACExml
 }
 
@@ -348,7 +352,7 @@ ForEach-Object {
 
 # WIN10 1903服务修正
 if ((Get-WindowsOptionalFeature -Online -FeatureName "WCF-TCP-Activation45").State -eq "Disabled") {
-    Enable-WindowsOptionalFeature -Online -FeatureName "WCF-TCP-Activation45" -All -NoRestart | Out-Null
+    Enable-WindowsOptionalFeature -Online -FeatureName "WCF-TCP-Activation45" -NoRestart | Out-Null
 }
 if ((Get-Service -Name "NetTcpPortSharing").StartType -ne "Automatic" ) {
     Set-Service -Name "NetTcpPortSharing" -StartupType Automatic
