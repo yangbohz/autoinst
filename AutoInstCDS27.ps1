@@ -171,13 +171,15 @@ foreach ($logDir in $logDirs) {
 }
 
 $instStatus = Get-Content -Path $lastinstlog -Encoding utf8 -Tail 1
-# 安装日志最后一行的后半部分内容。预期输出为类似下面的内容,如果检测不到安装成功的标志，写入异常日志。
+# 安装日志最后一行的后半部分内容。预期输出为类似下面的内容,如果检测不到安装成功的标志，写入异常日志，并停止安装
 # [2020-04-21T15:47:59]i007: Exit code: 0x0, restarting: No
 if ($instStatus.Contains("0x0")) {
     Add-Content -Path (Join-Path $shareBase "Install_Summary.log") -Value ($env:COMPUTERNAME + "`t" + $instStatus.Substring(11))
 }
 else {
     Add-Content -Path (Join-Path $shareBase "Exception.log ") -Value ($env:COMPUTERNAME + "`tInstallation " + $instStatus.Substring(11))
+    Write-Warning "$(Get-Date)  Didn't detect installation successful flag, script terminated."
+    break
 }
 
 # 如果补丁文件存在，则安装
@@ -200,6 +202,10 @@ if (Test-Path $cdshf) {
 # Write-Host ((Get-Date).ToString() + "  Start to uninstall B&R") -ForegroundColor Magenta
 # Start-Process msiexec -ArgumentList "/x {A8327120-9557-4FB9-A38D-2703ED79B7C5} /qn" -Wait #备份
 # Start-Process msiexec -ArgumentList "/x {01C23600-21B6-41B9-8CFD-6ED554CE268C} /qn" -Wait #还原
+
+# 卸载EMethod，没用
+Write-Host -ForegroundColor Magenta "$(Get-Date)  Strating to uninstall EMethod Import"
+Start-Process msiexec -ArgumentList "/x {3A443F2E-8437-4B8D-9F25-EBC47CE54CBE} /qn" -Wait
 
 # 安装adobe阅读器 2.7不再集成安装包
 # Write-Host ((Get-Date).ToString() + "  Start to install Adobe Reader") -ForegroundColor Green

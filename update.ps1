@@ -29,6 +29,10 @@ $cdshf = Join-Path $updateBase "OpenLAB_CDS_Update.exe"
 $logbase = Join-Path $env:ProgramData "Agilent\InstallLogs"
 $svdest = Join-Path $updateBase "SVReports" $env:COMPUTERNAME
 
+if (-not (Test-Path -Path $svdest)) {
+    New-Item -ItemType Directory -Path $svdest | Out-Null
+}
+
 # 检查必要的文件路径，如果安装程序或者属性文件不存在则退出执行
 Write-Host ((Get-Date).ToString() + "  Get update path $($cdshf)") -ForegroundColor Cyan
 
